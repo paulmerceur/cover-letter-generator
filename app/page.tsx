@@ -7,6 +7,8 @@ export default function HomePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [result, setResult] = useState("");
+  const [parsedResumeText, setParsedResumeText] = useState("");
+  const [modelUsed, setModelUsed] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -19,6 +21,10 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
+      setResult("");
+      setParsedResumeText("");
+      setModelUsed("");
+
       const formData = new FormData();
       formData.append("jobDescription", jobDescription);
 
@@ -32,20 +38,34 @@ export default function HomePage() {
       });
 
       const responseText = await response.text();
-      let data: { error?: string; letter?: string } = {};
+      let data: {
+        error?: string;
+        letter?: string;
+        parsedResumeText?: string;
+        modelUsed?: string;
+      } = {};
 
       try {
-        data = JSON.parse(responseText) as { error?: string; letter?: string };
+        data = JSON.parse(responseText) as {
+          error?: string;
+          letter?: string;
+          parsedResumeText?: string;
+          modelUsed?: string;
+        };
       } catch {
         data = {};
       }
 
       if (!response.ok) {
+        setParsedResumeText(data.parsedResumeText ?? "");
+        setModelUsed(data.modelUsed ?? "");
         setResult(data.error ?? responseText ?? "Failed to generate cover letter.");
         return;
       }
 
       setResult(data.letter ?? "Failed to generate cover letter.");
+      setParsedResumeText(data.parsedResumeText ?? "");
+      setModelUsed(data.modelUsed ?? "");
     } catch (error) {
       console.error("Failed to generate cover letter:", error);
       setResult("Failed to generate cover letter.");
@@ -55,23 +75,23 @@ export default function HomePage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 p-6">
-      <h1 className="text-3xl font-semibold">Cover Letter Generator</h1>
+    <main className="mx-auto max-w-3xl p-6">
+      <h1 className="mb-6 text-2xl font-bold">Cover Letter Generator</h1>
 
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Job Description</span>
+      <label className="mb-4 block">
+        <div className="mb-2">Job Description</div>
         <textarea
-          className="min-h-40 rounded border border-gray-300 p-3"
+          className="min-h-40 w-full border p-3"
           value={jobDescription}
           onChange={(event) => setJobDescription(event.target.value)}
           placeholder="Paste the job description here..."
         />
       </label>
 
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Resume PDF</span>
+      <label className="mb-4 block">
+        <div className="mb-2">Resume PDF</div>
         <input
-          className="rounded border border-gray-300 p-2"
+          className="w-full border p-2"
           type="file"
           accept="application/pdf"
           onChange={handleFileChange}
@@ -79,27 +99,41 @@ export default function HomePage() {
       </label>
 
       {selectedFileName ? (
-        <p className="text-sm text-gray-600">Selected file: {selectedFileName}</p>
+        <p className="mb-4">Selected file: {selectedFileName}</p>
       ) : null}
 
-      <button
-        className="w-fit rounded border border-gray-300 px-4 py-2"
-        type="button"
-        onClick={handleGenerate}
-        disabled={isLoading}
-      >
-        {isLoading ? "Generating..." : "Generate"}
-      </button>
+      <div className="flex justify-center">
+        <button
+          className="mb-6 border px-4 py-2"
+          type="button"
+          onClick={handleGenerate}
+          disabled={isLoading}
+        >
+          {isLoading ? "Generating..." : "Generate"}
+        </button>
+      </div>
 
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Result</span>
-        <textarea
-          className="min-h-56 rounded border border-gray-300 p-3"
-          value={result}
-          readOnly
-          placeholder="Generated cover letter will appear here..."
-        />
-      </label>
+      {result ? (
+        <section className="mb-8">
+          <div className="border p-4 whitespace-pre-wrap">{result}</div>
+        </section>
+      ) : null}
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold">Debug</h2>
+
+        <div className="mb-4">
+          <h3 className="mb-2 font-semibold">Model Used</h3>
+          <div className="border p-3">{modelUsed || "No model used yet."}</div>
+        </div>
+
+        <div>
+          <h3 className="mb-2 font-semibold">Parsed Resume</h3>
+          <div className="max-h-80 overflow-auto border p-3 whitespace-pre-wrap">
+            {parsedResumeText || "Parsed PDF text will appear here after generation..."}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
