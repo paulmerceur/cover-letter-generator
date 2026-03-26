@@ -31,10 +31,17 @@ export default function HomePage() {
         body: formData,
       });
 
-      const data: { error?: string; letter?: string } = await response.json();
+      const responseText = await response.text();
+      let data: { error?: string; letter?: string } = {};
+
+      try {
+        data = JSON.parse(responseText) as { error?: string; letter?: string };
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
-        setResult(data.error ?? "Failed to generate cover letter.");
+        setResult(data.error ?? responseText ?? "Failed to generate cover letter.");
         return;
       }
 
