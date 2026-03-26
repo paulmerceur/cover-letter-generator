@@ -4,12 +4,14 @@ import { ChangeEvent, useState } from "react";
 
 export default function HomePage() {
   const [jobDescription, setJobDescription] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [result, setResult] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    setSelectedFile(file ?? null);
     setSelectedFileName(file?.name ?? "");
   };
 
@@ -17,16 +19,26 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
+      const formData = new FormData();
+      formData.append("jobDescription", jobDescription);
+
+      if (selectedFile) {
+        formData.append("resume", selectedFile);
+      }
+
       const response = await fetch("/api/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ jobDescription }),
+        body: formData,
       });
 
-      const data: { letter: string } = await response.json();
-      setResult(data.letter);
+      const data: { error?: string; letter?: string } = await response.json();
+
+      if (!response.ok) {
+        setResult(data.error ?? "Failed to generate cover letter.");
+        return;
+      }
+
+      setResult(data.letter ?? "Failed to generate cover letter.");
     } catch (error) {
       console.error("Failed to generate cover letter:", error);
       setResult("Failed to generate cover letter.");
